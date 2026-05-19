@@ -1,0 +1,13 @@
+[Unit]
+Description=Purple Haze Workspace Swarm
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/hermes-workspace-purple-haze
+ExecStart=/usr/bin/bash %h/hermes-workspace-purple-haze/scripts/run-purple-haze-stack.sh
+Restart=always
+User=%u
+
+[Install]
+WantedBy=default.target

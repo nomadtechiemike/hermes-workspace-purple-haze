@@ -2,7 +2,7 @@
 # Hermes Workspace — one-liner installer
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/outsourc-e/hermes-workspace/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/nomadtechiemike/hermes-workspace-purple-haze/main/install.sh | bash
 #
 # What it does:
 #   1. Verifies Node 22+, git, pnpm
@@ -15,7 +15,7 @@
 
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/outsourc-e/hermes-workspace.git}"
+REPO_URL="${REPO_URL:-https://github.com/nomadtechiemike/hermes-workspace-purple-haze.git}"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/hermes-workspace}"
 GATEWAY_PORT="${GATEWAY_PORT:-8642}"
 NOUS_INSTALLER_URL="${NOUS_INSTALLER_URL:-https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh}"
@@ -34,8 +34,8 @@ banner() {
   cat <<'EOF'
 
    ╭────────────────────────────────────────────╮
-   │  HERMES WORKSPACE — zero-fork installer   │
-   │  outsourc-e/hermes-workspace               │
+  │  HERMES WORKSPACE — purple-haze installer │
+  │  nomadtechiemike/hermes-workspace-purple-haze │
    ╰────────────────────────────────────────────╯
 
 EOF

@@ -1,8 +1,8 @@
 {
   "name": "hermes-workspace",
   "version": "2.3.0",
-  "description": "Desktop workspace for Hermes Agent — chat, orchestration, and multi-agent coding pipelines",
-  "author": "Eric (https://github.com/outsourc-e)",
+  "description": "High-performance multi-agent swarms workspace for orchestration, runtime control, and autonomous delivery",
+  "author": "Techie Mike (https://github.com/nomadtechiemike)",
   "license": "MIT",
   "private": true,
   "type": "module",

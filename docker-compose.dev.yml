@@ -10,7 +10,8 @@
 # rebuild that locally, and doing so just couples the compose stack to
 # whatever vendored Python the workspace happens to ship. If you really
 # need a custom agent image, build/tag it separately and override the
-# `image:` field in your own .override.yml.
+# `image:` field in your own .override.yml (for example,
+# ghcr.io/nomadtechiemike/hermes-workspace-purple-haze:latest).
 #
 # Usage:
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build

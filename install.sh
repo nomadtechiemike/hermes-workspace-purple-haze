@@ -16,7 +16,7 @@
 set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/nomadtechiemike/hermes-workspace-purple-haze.git}"
-INSTALL_DIR="${INSTALL_DIR:-$HOME/hermes-workspace-purple-haze}"
+INSTALL_DIR="${INSTALL_DIR:-$HOME/hermes-workspace}"
 GATEWAY_PORT="${GATEWAY_PORT:-8642}"
 NOUS_INSTALLER_URL="${NOUS_INSTALLER_URL:-https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh}"
 

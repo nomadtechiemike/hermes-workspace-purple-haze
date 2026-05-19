@@ -105,6 +105,25 @@ export type DashboardStatus = {
   [key: string]: unknown
 }
 
+const PROFILE_WRITE_TIMEOUT_MS = 2_000
+
+export type ProfileMirrorAction =
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'rename'
+  | 'activate'
+
+export type ProfileMirrorPayload = {
+  name?: string
+  cloneFrom?: string
+  model?: string
+  provider?: string
+  patch?: Record<string, unknown>
+  oldName?: string
+  newName?: string
+}
+
 async function dashboardJson<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await dashboardFetch(path, init)
   if (!res.ok) {
@@ -387,6 +406,129 @@ export async function getLogs(params: {
 
 export async function getStatus(): Promise<DashboardStatus> {
   return dashboardJson('/api/status')
+}
+
+async function tryDashboardWrite(
+  path: string,
+  init: RequestInit,
+): Promise<{ ok: boolean; endpoint: string }> {
+  const res = await dashboardFetch(path, {
+    ...init,
+    signal: AbortSignal.timeout(PROFILE_WRITE_TIMEOUT_MS),
+  })
+  if (res.ok) return { ok: true, endpoint: path }
+  if ([400, 401, 403, 409].includes(res.status)) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Dashboard ${path}: ${res.status} ${text}`)
+  }
+  throw new Error(`Dashboard unsupported: ${res.status} @ ${path}`)
+}
+
+export async function mirrorProfileWriteToDashboard(
+  action: ProfileMirrorAction,
+  payload: ProfileMirrorPayload,
+): Promise<{ ok: boolean; endpoint: string }> {
+  const candidates: Array<{ path: string; init: RequestInit }> = []
+
+  if (action === 'create') {
+    candidates.push({
+      path: '/api/profiles',
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: payload.name,
+          clone_from_default: payload.cloneFrom === 'default',
+          clone_from: payload.cloneFrom,
+          no_skills: false,
+        }),
+      },
+    })
+    candidates.push({
+      path: '/api/profiles/create',
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: payload.name,
+          cloneFrom: payload.cloneFrom,
+          model: payload.model,
+          provider: payload.provider,
+        }),
+      },
+    })
+  } else if (action === 'update') {
+    candidates.push({
+      path: '/api/profiles/update',
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: payload.name, patch: payload.patch || {} }),
+      },
+    })
+  } else if (action === 'delete') {
+    candidates.push({
+      path: `/api/profiles/${encodeURIComponent(payload.name || '')}`,
+      init: { method: 'DELETE' },
+    })
+    candidates.push({
+      path: '/api/profiles/delete',
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: payload.name }),
+      },
+    })
+  } else if (action === 'rename') {
+    candidates.push({
+      path: `/api/profiles/${encodeURIComponent(payload.oldName || '')}`,
+      init: {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ new_name: payload.newName }),
+      },
+    })
+    candidates.push({
+      path: '/api/profiles/rename',
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldName: payload.oldName, newName: payload.newName }),
+      },
+    })
+  } else if (action === 'activate') {
+    candidates.push({
+      path: '/api/profiles/activate',
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: payload.name }),
+      },
+    })
+    candidates.push({
+      path: '/api/profiles/use',
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: payload.name }),
+      },
+    })
+  }
+
+  if (candidates.length === 0) {
+    throw new Error(`No dashboard mirror path configured for action: ${action}`)
+  }
+
+  let lastError: Error | null = null
+  for (const candidate of candidates) {
+    try {
+      return await tryDashboardWrite(candidate.path, candidate.init)
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+    }
+  }
+
+  throw lastError || new Error(`Dashboard mirror failed for ${action}`)
 }
 
 export { CLAUDE_DASHBOARD_URL }

@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../../server/auth-middleware'
 import { setActiveProfile } from '../../../server/profiles-browser'
+import { syncProfileWrite } from '../../../server/profile-sync-orchestrator'
 import { requireJsonContentType } from '../../../server/rate-limit'
 
 export const Route = createFileRoute('/api/profiles/activate')({
@@ -15,8 +16,10 @@ export const Route = createFileRoute('/api/profiles/activate')({
         if (csrfCheck) return csrfCheck
         try {
           const body = (await request.json()) as { name?: string }
-          setActiveProfile(body.name || '')
-          return json({ ok: true })
+          const name = body.name || ''
+          setActiveProfile(name)
+          const sync = await syncProfileWrite('activate', { name })
+          return json({ ok: true, sync })
         } catch (error) {
           return json(
             {

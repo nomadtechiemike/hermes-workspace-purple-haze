@@ -1,7 +1,10 @@
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import YAML from 'yaml'
+import {
+  getHermesRoot as getCanonicalHermesRoot,
+  getProfilesDir,
+} from './claude-paths'
 
 export type ProfileSummary = {
   name: string
@@ -47,11 +50,7 @@ const TEXT_REWRITE_EXTENSIONS = new Set([
 ])
 
 function getHermesRoot(): string {
-  return (
-    process.env.HERMES_HOME ??
-    process.env.CLAUDE_HOME ??
-    path.join(os.homedir(), '.hermes')
-  )
+  return getCanonicalHermesRoot()
 }
 
 function getClaudeRoot(): string {
@@ -59,7 +58,7 @@ function getClaudeRoot(): string {
 }
 
 export function getProfilesRoot(): string {
-  return path.join(getClaudeRoot(), 'profiles')
+  return getProfilesDir()
 }
 
 function getActiveProfilePath(): string {

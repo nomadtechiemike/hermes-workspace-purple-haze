@@ -22,6 +22,21 @@ type ClaudeProfileSummary = {
   updatedAt?: string
 }
 
+type SyncAwareApiResponse = {
+  ok?: boolean
+  error?: string
+  sync?: {
+    warnings?: string[]
+  }
+}
+
+function syncWarningsFromPayload(payload: SyncAwareApiResponse): string[] {
+  if (!Array.isArray(payload.sync?.warnings)) return []
+  return payload.sync.warnings.filter(
+    (item): item is string => typeof item === 'string' && item.trim().length > 0,
+  )
+}
+
 export type GatewayConfigAgent = {
   id: string
   name: string
@@ -262,49 +277,46 @@ async function createClaudeProfile(input: {
   model?: string
   provider?: string
   cloneFrom?: string
-}) {
+}): Promise<string[]> {
   const response = await fetch('/api/profiles/create', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
   })
-  const payload = (await response.json().catch(() => ({}))) as {
-    ok?: boolean
-    error?: string
-  }
+  const payload = (await response.json().catch(() => ({}))) as SyncAwareApiResponse
   if (!response.ok || payload.ok === false) {
     throw new Error(payload.error || `Failed to create profile (${response.status})`)
   }
+  return syncWarningsFromPayload(payload)
 }
 
-async function updateClaudeProfile(name: string, patch: Record<string, unknown>) {
+async function updateClaudeProfile(
+  name: string,
+  patch: Record<string, unknown>,
+): Promise<string[]> {
   const response = await fetch('/api/profiles/update', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ name, patch }),
   })
-  const payload = (await response.json().catch(() => ({}))) as {
-    ok?: boolean
-    error?: string
-  }
+  const payload = (await response.json().catch(() => ({}))) as SyncAwareApiResponse
   if (!response.ok || payload.ok === false) {
     throw new Error(payload.error || `Failed to update profile (${response.status})`)
   }
+  return syncWarningsFromPayload(payload)
 }
 
-async function deleteClaudeProfile(name: string) {
+async function deleteClaudeProfile(name: string): Promise<string[]> {
   const response = await fetch('/api/profiles/delete', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ name }),
   })
-  const payload = (await response.json().catch(() => ({}))) as {
-    ok?: boolean
-    error?: string
-  }
+  const payload = (await response.json().catch(() => ({}))) as SyncAwareApiResponse
   if (!response.ok || payload.ok === false) {
     throw new Error(payload.error || `Failed to delete profile (${response.status})`)
   }
+  return syncWarningsFromPayload(payload)
 }
 
 function loadAgentMeta(agentId: string): OperationsAgentMeta {
@@ -632,17 +644,21 @@ export function useOperations() {
         throw new Error('A profile with this name already exists')
       }
 
-      await createClaudeProfile({
+      const syncWarnings = await createClaudeProfile({
         name: id,
         model: input.model.trim() || undefined,
       })
       // Persist system prompt + description into the profile config so they
       // survive across browsers; localStorage meta keeps emoji/color preferences.
       if (input.systemPrompt.trim() || input.description?.trim()) {
-        await updateClaudeProfile(id, {
+        const patchWarnings = await updateClaudeProfile(id, {
           system_prompt: input.systemPrompt.trim() || undefined,
           description: input.description?.trim() || undefined,
         })
+        syncWarnings.push(...patchWarnings)
+      }
+      for (const warning of syncWarnings) {
+        toast(warning, { type: 'warning' })
       }
       persistAgentMeta(id, {
         emoji: input.emoji.trim() || createFallbackEmoji(id),
@@ -679,7 +695,10 @@ export function useOperations() {
       if (input.model.trim()) patch.model = input.model.trim()
       if (input.systemPrompt.trim()) patch.system_prompt = input.systemPrompt.trim()
       if (Object.keys(patch).length > 0) {
-        await updateClaudeProfile(input.agentId, patch)
+        const syncWarnings = await updateClaudeProfile(input.agentId, patch)
+        for (const warning of syncWarnings) {
+          toast(warning, { type: 'warning' })
+        }
       }
       const currentMeta = loadAgentMeta(input.agentId)
       persistAgentMeta(input.agentId, {
@@ -705,7 +724,10 @@ export function useOperations() {
       if (agentId === 'default') {
         throw new Error('Cannot delete the default profile')
       }
-      await deleteClaudeProfile(agentId)
+      const syncWarnings = await deleteClaudeProfile(agentId)
+      for (const warning of syncWarnings) {
+        toast(warning, { type: 'warning' })
+      }
       removeAgentMeta(agentId)
       setMetaVersion((value) => value + 1)
       setSelectedAgentId((current) => (current === agentId ? null : current))

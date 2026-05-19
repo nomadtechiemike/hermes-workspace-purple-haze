@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../../server/auth-middleware'
 import { createProfile } from '../../../server/profiles-browser'
+import { syncProfileWrite } from '../../../server/profile-sync-orchestrator'
 import { requireJsonContentType } from '../../../server/rate-limit'
 
 export const Route = createFileRoute('/api/profiles/create')({
@@ -20,13 +21,21 @@ export const Route = createFileRoute('/api/profiles/create')({
             model?: string
             provider?: string
           }
+          const profile = createProfile(body.name || '', {
+            cloneFrom: body.cloneFrom,
+            model: body.model,
+            provider: body.provider,
+          })
+          const sync = await syncProfileWrite('create', {
+            name: profile.name,
+            cloneFrom: body.cloneFrom,
+            model: body.model,
+            provider: body.provider,
+          })
           return json({
             ok: true,
-            profile: createProfile(body.name || '', {
-              cloneFrom: body.cloneFrom,
-              model: body.model,
-              provider: body.provider,
-            }),
+            profile,
+            sync,
           })
         } catch (error) {
           return json(

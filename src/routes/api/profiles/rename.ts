@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../../server/auth-middleware'
 import { renameProfile } from '../../../server/profiles-browser'
+import { syncProfileWrite } from '../../../server/profile-sync-orchestrator'
 import { requireJsonContentType } from '../../../server/rate-limit'
 
 export const Route = createFileRoute('/api/profiles/rename')({
@@ -18,9 +19,15 @@ export const Route = createFileRoute('/api/profiles/rename')({
             oldName?: string
             newName?: string
           }
+          const profile = renameProfile(body.oldName || '', body.newName || '')
+          const sync = await syncProfileWrite('rename', {
+            oldName: body.oldName,
+            newName: body.newName,
+          })
           return json({
             ok: true,
-            profile: renameProfile(body.oldName || '', body.newName || ''),
+            profile,
+            sync,
           })
         } catch (error) {
           return json(

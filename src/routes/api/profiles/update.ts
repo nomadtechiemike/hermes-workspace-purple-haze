@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../../server/auth-middleware'
 import { updateProfileConfig } from '../../../server/profiles-browser'
+import { syncProfileWrite } from '../../../server/profile-sync-orchestrator'
 import { requireJsonContentType } from '../../../server/rate-limit'
 
 export const Route = createFileRoute('/api/profiles/update')({
@@ -22,7 +23,11 @@ export const Route = createFileRoute('/api/profiles/update')({
             return json({ error: 'patch is required' }, { status: 400 })
           }
           const profile = updateProfileConfig(body.name || '', body.patch)
-          return json({ ok: true, profile })
+          const sync = await syncProfileWrite('update', {
+            name: profile.name,
+            patch: body.patch,
+          })
+          return json({ ok: true, profile, sync })
         } catch (error) {
           return json(
             {

@@ -184,6 +184,20 @@ const THEME_PREVIEWS: Record<
     accent: '#3b82f6',
     text: '#1F2328',
   },
+  'purple-haze': {
+    bg: '#0A0118',
+    panel: '#100327',
+    border: 'rgba(113,61,255,0.32)',
+    accent: '#713dff',
+    text: '#f3eefc',
+  },
+  'purple-haze-light': {
+    bg: '#F7F2FF',
+    panel: '#FFFFFF',
+    border: 'rgba(113,61,255,0.18)',
+    accent: '#713dff',
+    text: '#1a1130',
+  },
   'scifi': {
     bg: '#060b18',
     panel: '#0a1628',

@@ -48,7 +48,7 @@ module.exports = {
   },
   publish: {
     provider: 'github',
-    owner: 'outsourc-e',
+    owner: 'nomadtechiemike',
     repo: 'hermes-workspace',
     releaseType: 'release',
   },

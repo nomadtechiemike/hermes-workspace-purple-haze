@@ -83,9 +83,9 @@ Anti-drift gate (every output runs through this):
 
 ## 4. Repos
 
-- `outsourc-e/hermes-workspace` — public (browser game lives here)
-- `outsourc-e/hermesworld-game` — **private** (issues, internal specs, prize logic, secrets, roadmap)
-- `outsourc-e/controlsuite` — desktop client
+- `nomadtechiemike/hermes-workspace` — public (browser game lives here)
+- `nomadtechiemike/hermesworld-game` — **private** (issues, internal specs, prize logic, secrets, roadmap)
+- `nomadtechiemike/controlsuite` — desktop client
 - `ocplatform/ocplatform` — agent runtime
 - `ocplatform/ocplatform-control-ui` — webchat surface
 
@@ -128,7 +128,7 @@ prompt → generate → vision review → optimize → drop into game → screen
 
 1. Master plan committed (this doc)
 2. Reference images mirrored into repo
-3. Private repo `outsourc-e/hermesworld-game` created with labels + issue templates
+3. Private repo `nomadtechiemike/hermesworld-game` created with labels + issue templates
 4. Existing bugs filed:
    - mobile UX merge-readiness (swarm3 worktree exists)
    - character creator face-covering bug

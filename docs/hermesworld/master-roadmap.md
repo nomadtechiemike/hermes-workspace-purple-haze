@@ -2,7 +2,7 @@
 
 Status: active build sprint
 Owner: Eric / Aurora
-Repo: `outsourc-e/hermes-workspace`
+Repo: `nomadtechiemike/hermes-workspace`
 Scope: HermesWorld inside Hermes Workspace, dashboard/plugin embedded first, standalone later
 
 ## Product thesis

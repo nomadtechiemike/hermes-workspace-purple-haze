@@ -642,7 +642,7 @@ cd ~/hermes-agent && git pull && uv pip install -e .
 hermes gateway run
 ```
 
-(If you installed via a different path, follow your Nous installer's upgrade instructions.) If you were on the old `outsourc-e/hermes-agent` fork, it's no longer needed as of v2 — uninstall it and use upstream instead.
+(If you installed via a different path, follow your Nous installer's upgrade instructions.) If you were on the old `nomadtechiemike/hermes-agent` fork, it's no longer needed as of v2 — uninstall it and use upstream instead.
 
 ### "Connection refused" or workspace hangs on load
 
@@ -775,7 +775,7 @@ Hermes Workspace is free and open source. If it's saving you time and powering y
 
 **ETH:** `0xB332D4C60f6FBd94913e3Fd40d77e3FE901FAe22`
 
-[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github)](https://github.com/sponsors/outsourc-e)
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github)](https://github.com/sponsors/nomadtechiemike)
 
 Every contribution helps keep this project moving. Thank you 🙏
 
@@ -798,5 +798,5 @@ MIT — see [LICENSE](LICENSE) for details.
 ---
 
 <div align="center">
-  <sub>Built with ⚡ by <a href="https://github.com/outsourc-e">@outsourc-e</a> and the Hermes Workspace community</sub>
+  <sub>Built with ⚡ by <a href="https://github.com/nomadtechiemike">@nomadtechiemike</a> and the Hermes Workspace community</sub>
 </div>

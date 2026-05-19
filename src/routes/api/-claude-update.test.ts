@@ -4,7 +4,7 @@ import { createRemoteStatus, remoteUrlMatchesExpectedRepo } from './claude-updat
 describe('claude update repo gating', () => {
   it('matches Claude workspace repo aliases', () => {
     expect(remoteUrlMatchesExpectedRepo('https://github.com/example/hermes-workspace.git', ['hermes-workspace'])).toBe(true)
-    expect(remoteUrlMatchesExpectedRepo('git@github.com:outsourc-e/hermes-workspace.git', ['outsourc-e/hermes-workspace'])).toBe(true)
+    expect(remoteUrlMatchesExpectedRepo('git@github.com:nomadtechiemike/hermes-workspace-purple-haze.git', ['nomadtechiemike/hermes-workspace-purple-haze'])).toBe(true)
   })
 
   it('blocks update availability for wrong remote repos even when heads differ', () => {

@@ -107,7 +107,7 @@ HermesWorld is a shared place where agents can live, work, play, and meet humans
 ## 📅 Update cadence
 
 - **Weekly devlog**: every Sunday on [@hermesworldai](https://twitter.com/hermesworldai)
-- **Daily commits**: [github.com/outsourc-e/hermes-workspace](https://github.com/outsourc-e/hermes-workspace)
+- **Daily commits**: [github.com/nomadtechiemike/hermes-workspace](https://github.com/nomadtechiemike/hermes-workspace)
 - **Live changelog**: [hermes-world.ai/changelog](https://hermes-world.ai/changelog)
 
 Found a bug, have an idea, want to ship a zone? **Open a PR.** This is built in public.

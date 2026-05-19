@@ -4,8 +4,8 @@ import { remoteUrlMatches } from './update-system'
 describe('update-system helpers', () => {
   it('matches GitHub URL forms against expected repo aliases', () => {
     expect(
-      remoteUrlMatches('https://github.com/outsourc-e/hermes-workspace.git', [
-        'outsourc-e/hermes-workspace',
+      remoteUrlMatches('https://github.com/nomadtechiemike/hermes-workspace-purple-haze.git', [
+        'nomadtechiemike/hermes-workspace-purple-haze',
       ]),
     ).toBe(true)
     expect(

@@ -57,6 +57,8 @@ const VALID_THEMES = [
   'claude-classic-light',
   'claude-slate',
   'claude-slate-light',
+  'purple-haze',
+  'purple-haze-light',
 ]
 
 const themeScript = `
@@ -67,7 +69,7 @@ const themeScript = `
     const root = document.documentElement
     const storedTheme = localStorage.getItem('${THEME_STORAGE_KEY}')
     const theme = ${JSON.stringify(VALID_THEMES)}.includes(storedTheme) ? storedTheme : '${DEFAULT_THEME}'
-    const lightThemes = ['claude-nous-light', 'claude-official-light', 'claude-classic-light', 'claude-slate-light']
+    const lightThemes = ['claude-nous-light', 'claude-official-light', 'claude-classic-light', 'claude-slate-light', 'purple-haze-light']
     const isDark = !lightThemes.includes(theme)
     root.classList.remove('light', 'dark', 'system')
     root.classList.add(isDark ? 'dark' : 'light')
@@ -98,9 +100,11 @@ const themeColorScript = `
       'claude-classic-light': '#F5F2ED',
       'claude-slate': '#0d1117',
       'claude-slate-light': '#F6F8FA',
+      'purple-haze': '#0A0118',
+      'purple-haze-light': '#F7F2FF',
     }
     const nextColor = colors[theme] || colors['${DEFAULT_THEME}']
-    const isDark = !['claude-nous-light', 'claude-official-light', 'claude-classic-light', 'claude-slate-light'].includes(String(theme))
+    const isDark = !['claude-nous-light', 'claude-official-light', 'claude-classic-light', 'claude-slate-light', 'purple-haze-light'].includes(String(theme))
 
     let meta = document.querySelector('meta[name="theme-color"]')
     if (!meta) {
@@ -253,12 +257,7 @@ export async function registerAppServiceWorker({
 function RootLayout() {
   const { settings } = useSettings()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
-  const isHermesWorldLandingRoute =
-    pathname === '/hermes-world' ||
-    pathname.startsWith('/hermes-world/') ||
-    pathname === '/world' ||
-    pathname.startsWith('/world/')
-  const isGameSurfaceRoute = isHermesWorldLandingRoute || pathname === '/playground' || pathname.startsWith('/playground/')
+  void pathname
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(
     null,
   )
@@ -369,12 +368,12 @@ function RootLayout() {
               <Outlet />
             </ErrorBoundary>
           </WorkspaceShell>
-          {!isHermesWorldLandingRoute ? <SearchModal /> : null}
+          <SearchModal />
           {/* Keep UsageMeter mounted so search-modal OPEN_USAGE still works even when the pill is hidden by default. */}
-          {!isGameSurfaceRoute ? <UsageMeter visible={settings.showUsageMeter} /> : null}
-          {!isHermesWorldLandingRoute ? <KeyboardShortcutsModal /> : null}
-          {!isHermesWorldLandingRoute ? <UpdateCenterNotifier /> : null}
-          {rootSurfaceState.showPostOnboardingOverlays && !isGameSurfaceRoute ? (
+          <UsageMeter visible={settings.showUsageMeter} />
+          <KeyboardShortcutsModal />
+          <UpdateCenterNotifier />
+          {rootSurfaceState.showPostOnboardingOverlays ? (
             <>
               <MobilePromptTrigger />
               <OnboardingTour />
@@ -421,7 +420,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             __html: wrapInlineScript(`
           (function(){
             if (document.getElementById('splash-screen')) return;
-            if (location.pathname === '/hermes-world' || location.pathname.indexOf('/hermes-world/') === 0 || location.pathname === '/world' || location.pathname.indexOf('/world/') === 0) return;
             var bg = '#031A1A', txt = '#F8F1E3', muted = '#9CB2AE', accent = '#FFAC02';
             try {
               var theme = localStorage.getItem('${THEME_STORAGE_KEY}') || '${DEFAULT_THEME}';

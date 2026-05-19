@@ -5,7 +5,6 @@ import {
   ArrowRight01Icon,
   BrainIcon,
   Building01Icon,
-  Castle02Icon,
   Chat01Icon,
   CheckListIcon,
   Clock01Icon,
@@ -578,7 +577,6 @@ function ChatSidebarComponent({
   const isSkillsActive = pathname === '/skills'
   const isMcpActive = pathname === '/mcp'
   const isFilesActive = pathname === '/files'
-  const isPlaygroundActive = pathname === '/playground'
   const isAgoraActive = pathname === '/agora'
   const isTerminalActive = pathname === '/terminal'
   const isJobsActive = pathname === '/jobs'
@@ -709,7 +707,7 @@ function ChatSidebarComponent({
 
   const asideProps = {
     className: cn(
-      'border-r h-full overflow-hidden flex flex-col theme-sidebar theme-border',
+      'h-full w-[300px] overflow-hidden flex flex-col border-r border-white/5 bg-(--theme-sidebar) shadow-[0_24px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl',
       isMobile && 'fixed inset-y-0 left-0 z-50 shadow-2xl',
       isMobile && isCollapsed && 'pointer-events-none',
     ),
@@ -1032,50 +1030,10 @@ function ChatSidebarComponent({
         </div>
       )}
 
-      {/* ── HermesWorld featured link (gold castle, NEW badge) ────── */}
-      {/* Hide when VITE_HERMESWORLD_ENABLED is explicitly '0' */}
-      {!isVisuallyCollapsed &&
-        (import.meta as any).env?.VITE_HERMESWORLD_ENABLED !== '0' && (
-        <div className="px-2 pb-2">
-          <Link
-            to="/playground"
-            onClick={() => onSelectSession?.()}
-            className={cn(
-              buttonVariants({ variant: 'ghost', size: 'sm' }),
-              'group w-full justify-start gap-2.5 px-3 py-2 text-primary-900 hover:bg-primary-200 dark:hover:bg-primary-800',
-              isPlaygroundActive &&
-                'bg-accent-500/10 text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-900/300/15',
-            )}
-            data-tour="hermesworld"
-          >
-            <HugeiconsIcon
-              icon={Castle02Icon}
-              size={20}
-              strokeWidth={1.5}
-              className="size-5 shrink-0"
-              style={{ color: '#facc15' }}
-            />
-            <span>HermesWorld</span>
-            <span
-              className="ml-auto inline-flex min-w-6 items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold leading-none"
-              style={{
-                background:
-                  'linear-gradient(180deg, #fde68a 0%, #fbbf24 50%, #d4a017 100%)',
-                color: '#0b1320',
-                boxShadow: '0 0 8px rgba(250,204,21,0.4)',
-                letterSpacing: '0.08em',
-              }}
-            >
-              NEW
-            </span>
-          </Link>
-        </div>
-      )}
-
       {/* ── Scrollable body: nav + sessions ─────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col">
         {/* Navigation sections */}
-        <div className={cn('shrink-0 space-y-0.5 px-2', isMobile && 'order-2')}>
+        <div className={cn('shrink-0 space-y-3 px-3 pt-2', isMobile && 'order-2')}>
           <SectionLabel
             label="Main"
             isCollapsed={isVisuallyCollapsed}
@@ -1121,7 +1079,7 @@ function ChatSidebarComponent({
         </div>
 
         {/* Sessions list */}
-        <div className={cn('shrink-0 mt-1', isMobile && 'order-1')}>
+        <div className={cn('shrink-0 mt-3 px-1', isMobile && 'order-1')}>
           <AnimatePresence initial={false}>
             {!isVisuallyCollapsed && (
               <motion.div
@@ -1153,12 +1111,12 @@ function ChatSidebarComponent({
       {/* end scrollable body */}
 
       {/* ── Footer with User Menu ─────────────────────────────────── */}
-      <div className="px-2 py-2.5 border-t shrink-0 theme-border theme-panel">
+      <div className="shrink-0 border-t border-white/5 bg-(--theme-panel) px-3 py-3">
         {/* User card + actions */}
         <div
           className={cn(
-            'flex items-center rounded-lg transition-colors',
-            isVisuallyCollapsed ? 'flex-col gap-2 py-2' : 'gap-2.5 px-2 py-1.5',
+            'flex items-center rounded-xl border border-white/5 bg-black/10 transition-colors',
+            isVisuallyCollapsed ? 'flex-col gap-2 py-2' : 'gap-2.5 px-2 py-2',
           )}
         >
           {/* User menu trigger */}
@@ -1192,7 +1150,7 @@ function ChatSidebarComponent({
                 )}
               </AnimatePresence>
             </MenuTrigger>
-            <MenuContent side="top" align="start" className="min-w-[200px]">
+            <MenuContent side="top" align="start" className="min-w-50">
               <MenuItem
                 onClick={function onOpenSettings() {
                   handleOpenSettings('claude')

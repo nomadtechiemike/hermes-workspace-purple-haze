@@ -46,6 +46,12 @@ type ProfileDetail = {
   skillsDir?: string
 }
 
+type SyncAwareResponse = {
+  sync?: {
+    warnings?: string[]
+  }
+}
+
 async function readJson<T>(url: string): Promise<T> {
   const response = await fetch(url)
   if (!response.ok) {
@@ -53,6 +59,13 @@ async function readJson<T>(url: string): Promise<T> {
     throw new Error(text || `Request failed (${response.status})`)
   }
   return (await response.json()) as T
+}
+
+function getSyncWarnings(payload: unknown): string[] {
+  if (!payload || typeof payload !== 'object') return []
+  const warnings = (payload as SyncAwareResponse).sync?.warnings
+  if (!Array.isArray(warnings)) return []
+  return warnings.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
 }
 
 function formatDate(value?: string): string {
@@ -90,7 +103,7 @@ function ProfileStat({
       <div
         className={cn(
           'text-sm font-bold text-primary-900 dark:text-neutral-100',
-          truncate && 'max-w-[72px] truncate text-xs',
+          truncate && 'max-w-18 truncate text-xs',
         )}
       >
         {value}
@@ -101,6 +114,15 @@ function ProfileStat({
     </div>
   )
 }
+
+const BENTO_LAYOUT_CLASSES = [
+  'xl:col-span-5 xl:row-span-2',
+  'xl:col-span-4',
+  'xl:col-span-3 xl:row-span-2',
+  'xl:col-span-4',
+  'xl:col-span-5',
+  'xl:col-span-3',
+]
 
 export function ProfilesScreen() {
   const queryClient = useQueryClient()
@@ -160,6 +182,14 @@ export function ProfilesScreen() {
     return payload
   }
 
+  function toastSyncWarnings(payload: unknown) {
+    const warnings = getSyncWarnings(payload)
+    if (warnings.length === 0) return
+    for (const warning of warnings) {
+      toast(warning, { type: 'warning' })
+    }
+  }
+
   const fetchAllModels = useCallback(async () => {
     setLoadingModels(true)
     try {
@@ -203,13 +233,14 @@ export function ProfilesScreen() {
     if (!newProfileName.trim()) return
     setBusyName('__create__')
     try {
-      await postJson('/api/profiles/create', {
+      const payload = await postJson('/api/profiles/create', {
         name: newProfileName.trim(),
         ...(cloneFrom ? { cloneFrom } : {}),
         ...(wizardModel ? { model: wizardModel } : {}),
         ...(wizardProvider ? { provider: wizardProvider } : {}),
       })
       toast(`Created profile ${newProfileName.trim()}`, { type: 'success' })
+      toastSyncWarnings(payload)
       setCreateOpen(false)
       resetWizard()
       await refreshProfiles()
@@ -226,8 +257,9 @@ export function ProfilesScreen() {
   async function handleActivate(name: string) {
     setBusyName(name)
     try {
-      await postJson('/api/profiles/activate', { name })
+      const payload = await postJson('/api/profiles/activate', { name })
       toast(`Activated profile ${name}`, { type: 'success' })
+      toastSyncWarnings(payload)
       await refreshProfiles()
     } catch (error) {
       toast(
@@ -247,8 +279,9 @@ export function ProfilesScreen() {
       return
     setBusyName(name)
     try {
-      await postJson('/api/profiles/delete', { name })
+      const payload = await postJson('/api/profiles/delete', { name })
       toast(`Deleted profile ${name}`, { type: 'success' })
+      toastSyncWarnings(payload)
       await refreshProfiles()
     } catch (error) {
       toast(
@@ -264,13 +297,14 @@ export function ProfilesScreen() {
     if (!renameTarget || !renameValue.trim()) return
     setBusyName(renameTarget.name)
     try {
-      await postJson('/api/profiles/rename', {
+      const payload = await postJson('/api/profiles/rename', {
         oldName: renameTarget.name,
         newName: renameValue.trim(),
       })
       toast(`Renamed ${renameTarget.name} → ${renameValue.trim()}`, {
         type: 'success',
       })
+      toastSyncWarnings(payload)
       setRenameTarget(null)
       setRenameValue('')
       await refreshProfiles()
@@ -288,11 +322,12 @@ export function ProfilesScreen() {
     if (!detailsName) return
     setSavingDescription(true)
     try {
-      await postJson('/api/profiles/update', {
+      const payload = await postJson('/api/profiles/update', {
         name: detailsName,
         patch: { description: descriptionDraft.trim() || null },
       })
       toast(`Saved description for ${detailsName}`, { type: 'success' })
+      toastSyncWarnings(payload)
       await Promise.all([
         refreshProfiles(),
         queryClient.invalidateQueries({ queryKey: ['profiles', 'read', detailsName] }),
@@ -309,14 +344,14 @@ export function ProfilesScreen() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 md:px-6">
-      <div className="flex flex-col gap-3 rounded-2xl border border-primary-200 bg-primary-50/80 p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 md:px-6">
+      <div className="flex flex-col gap-3 rounded-2xl border border-white/5 bg-(--theme-panel)/90 p-4 shadow-[0_12px_40px_rgba(0,0,0,0.24)] md:flex-row md:items-center md:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <HugeiconsIcon icon={UserGroupIcon} size={22} strokeWidth={1.7} />
-            <h1 className="text-lg font-semibold text-primary-900">Profiles</h1>
+            <h1 className="text-lg font-semibold text-white/95">Profiles</h1>
           </div>
-          <p className="mt-1 text-sm text-primary-600">
+          <p className="mt-1 text-sm text-white/65">
             Browse and manage Hermes profiles stored under{' '}
             <span className="font-mono">~/.hermes/profiles</span>.
           </p>
@@ -327,17 +362,21 @@ export function ProfilesScreen() {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {sorted.map((profile) => {
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-12 xl:auto-rows-[minmax(15rem,auto)]">
+        {sorted.map((profile, index) => {
           const busy = busyName === profile.name
+          const bentoClass = BENTO_LAYOUT_CLASSES[index % BENTO_LAYOUT_CLASSES.length]
           return (
             <article
               key={profile.name}
-              className="group relative overflow-hidden rounded-2xl border border-primary-200 bg-primary-50/80 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
+              className={cn(
+                'group relative overflow-hidden rounded-2xl border border-white/5 bg-(--theme-card)/95 shadow-[0_12px_36px_rgba(0,0,0,0.22)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[rgba(113,61,255,0.35)] hover:shadow-[0_0_15px_rgba(113,61,255,0.15)]',
+                bentoClass,
+              )}
             >
               {/* Active glow accent */}
               {profile.active && (
-                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-accent-500 to-emerald-400" />
+                <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--theme-accent) to-transparent opacity-80" />
               )}
 
               {/* Centered avatar hero */}
@@ -347,8 +386,8 @@ export function ProfilesScreen() {
                     className={cn(
                       'rounded-full p-1',
                       profile.active
-                        ? 'bg-gradient-to-br from-emerald-400 via-accent-500 to-emerald-500 shadow-lg shadow-emerald-500/20'
-                        : 'bg-gradient-to-br from-primary-200 to-primary-300 dark:from-neutral-700 dark:to-neutral-600',
+                        ? 'bg-[linear-gradient(135deg,rgba(113,61,255,0.95),rgba(155,123,255,0.95))] shadow-[0_0_18px_rgba(113,61,255,0.22)]'
+                        : 'bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(113,61,255,0.08))]',
                     )}
                   >
                     <img
@@ -357,8 +396,8 @@ export function ProfilesScreen() {
                       className={cn(
                         'size-20 rounded-full border-2 object-cover',
                         profile.active
-                          ? 'border-white dark:border-neutral-950'
-                          : 'border-primary-50 dark:border-neutral-950',
+                          ? 'border-white/90'
+                          : 'border-white/10',
                       )}
                       style={{
                         filter: profile.active
@@ -368,7 +407,7 @@ export function ProfilesScreen() {
                     />
                   </div>
                   {profile.active && (
-                    <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full border-2 border-white bg-emerald-500 px-2 py-0.5 dark:border-neutral-950">
+                    <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full border border-white/10 bg-(--theme-accent) px-2 py-0.5 shadow-[0_0_14px_rgba(113,61,255,0.24)]">
                       <HugeiconsIcon
                         icon={CheckmarkCircle02Icon}
                         size={10}
@@ -383,19 +422,19 @@ export function ProfilesScreen() {
                 </div>
 
                 {/* Name + provider */}
-                <h2 className="mt-3 text-center text-lg font-bold text-primary-900 dark:text-neutral-100">
+                <h2 className="mt-3 text-center text-lg font-bold text-white/95">
                   {profile.name}
                 </h2>
-                <span className="mt-1 inline-block rounded-full bg-primary-100 px-2.5 py-0.5 text-[11px] font-medium text-primary-600 dark:bg-neutral-800 dark:text-neutral-400">
+                <span className="mt-1 inline-block rounded-full border border-white/5 bg-white/5 px-2.5 py-0.5 text-[11px] font-medium text-white/70 backdrop-blur-sm">
                   {profile.provider || 'no provider'}
                 </span>
-                <p className="mt-3 line-clamp-2 min-h-[2.5rem] px-6 text-center text-xs text-primary-500 dark:text-neutral-400">
+                <p className="mt-3 min-h-10 line-clamp-2 px-6 text-center text-xs text-white/58">
                   {profile.description?.trim() || 'No description yet'}
                 </p>
               </div>
 
               {/* Stats ring */}
-              <div className="mx-4 mt-4 grid grid-cols-4 divide-x divide-primary-200 rounded-xl border border-primary-200 bg-primary-100/50 dark:divide-neutral-800 dark:border-neutral-800 dark:bg-neutral-900/50">
+              <div className="mx-4 mt-4 grid grid-cols-4 divide-x divide-white/5 rounded-xl border border-white/5 bg-black/20 backdrop-blur-sm">
                 <ProfileStat label="Skills" value={profile.skillCount} />
                 <ProfileStat label="Sessions" value={profile.sessionCount} />
                 <ProfileStat
@@ -410,22 +449,22 @@ export function ProfilesScreen() {
               </div>
 
               {/* Updated timestamp */}
-              <div className="mx-4 mt-3 flex items-center justify-center gap-1.5 text-xs text-primary-400 dark:text-neutral-500">
+              <div className="mx-4 mt-3 flex items-center justify-center gap-1.5 text-xs text-white/45">
                 <HugeiconsIcon icon={Clock01Icon} size={12} strokeWidth={1.7} />
                 {formatDate(profile.updatedAt)}
               </div>
 
               {/* Actions */}
-              <div className="mt-4 flex border-t border-primary-200 dark:border-neutral-800">
+              <div className="mt-4 flex border-t border-white/5 bg-black/10">
                 <button
                   type="button"
                   onClick={() => void handleActivate(profile.name)}
                   disabled={profile.active || busy}
                   className={cn(
-                    'flex flex-1 items-center justify-center gap-1.5 border-r border-primary-200 py-2.5 text-xs font-semibold transition-colors dark:border-neutral-800',
+                    'flex flex-1 items-center justify-center gap-1.5 border-r border-white/5 py-2.5 text-xs font-semibold transition-colors',
                     profile.active
-                      ? 'cursor-default text-primary-300 dark:text-neutral-600'
-                      : 'text-primary-700 hover:bg-primary-100 dark:text-neutral-300 dark:hover:bg-neutral-900',
+                      ? 'cursor-default text-white/35'
+                      : 'text-white/80 hover:bg-white/5',
                   )}
                 >
                   <HugeiconsIcon
@@ -438,7 +477,7 @@ export function ProfilesScreen() {
                 <button
                   type="button"
                   onClick={() => setDetailsName(profile.name)}
-                  className="flex flex-1 items-center justify-center gap-1.5 border-r border-primary-200 py-2.5 text-xs font-semibold text-primary-700 transition-colors hover:bg-primary-100 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-900"
+                  className="flex flex-1 items-center justify-center gap-1.5 border-r border-white/5 py-2.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/5"
                 >
                   <HugeiconsIcon
                     icon={Folder01Icon}
@@ -453,7 +492,7 @@ export function ProfilesScreen() {
                     setRenameTarget(profile)
                     setRenameValue(profile.name)
                   }}
-                  className="flex flex-1 items-center justify-center gap-1.5 border-r border-primary-200 py-2.5 text-xs font-semibold text-primary-700 transition-colors hover:bg-primary-100 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-900"
+                  className="flex flex-1 items-center justify-center gap-1.5 border-r border-white/5 py-2.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/5"
                 >
                   <HugeiconsIcon
                     icon={Edit02Icon}
@@ -469,8 +508,8 @@ export function ProfilesScreen() {
                   className={cn(
                     'flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-colors',
                     profile.active
-                      ? 'cursor-default text-primary-300 dark:text-neutral-600'
-                      : 'text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/20',
+                      ? 'cursor-default text-white/35'
+                      : 'text-red-300 hover:bg-red-500/10',
                   )}
                 >
                   <HugeiconsIcon
@@ -487,7 +526,7 @@ export function ProfilesScreen() {
       </div>
 
       {sorted.length === 0 && !profilesQuery.isLoading ? (
-        <div className="rounded-2xl border border-dashed border-primary-200 bg-primary-50/70 p-8 text-center text-sm text-primary-600">
+        <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-8 text-center text-sm text-white/65">
           No named profiles found yet. The active profile is{' '}
           <span className="font-semibold">{activeProfile}</span>.
         </div>

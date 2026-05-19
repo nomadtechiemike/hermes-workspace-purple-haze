@@ -9,6 +9,8 @@ export type ThemeId =
   | 'claude-classic-light'
   | 'claude-slate'
   | 'claude-slate-light'
+  | 'purple-haze'
+  | 'purple-haze-light'
   | 'scifi'
   | 'scifi-light'
 
@@ -79,6 +81,18 @@ export const THEMES: Array<{
     icon: '🔷',
   },
   {
+    id: 'purple-haze',
+    label: 'Purple Haze',
+    description: 'Premium dark violet glass with neon purple glow',
+    icon: '🟣',
+  },
+  {
+    id: 'purple-haze-light',
+    label: 'Purple Haze Light',
+    description: 'Soft lavender glass with violet accent framing',
+    icon: '🟣',
+  },
+  {
     id: 'scifi',
     label: 'SciFi',
     description: 'Cyberpunk HUD — deep navy, cyan neon, orange highlights',
@@ -104,6 +118,7 @@ const LIGHT_THEME_MAP: Record<
   'claude-official': 'claude-official-light',
   'claude-classic': 'claude-classic-light',
   'claude-slate': 'claude-slate-light',
+  'purple-haze': 'purple-haze-light',
   'scifi': 'scifi-light',
 }
 const DARK_THEME_MAP: Record<
@@ -115,6 +130,7 @@ const DARK_THEME_MAP: Record<
   'claude-official-light': 'claude-official',
   'claude-classic-light': 'claude-classic',
   'claude-slate-light': 'claude-slate',
+  'purple-haze-light': 'purple-haze',
   'scifi-light': 'scifi',
 }
 
@@ -124,6 +140,7 @@ const LIGHT_THEMES = new Set<ThemeId>([
   'claude-official-light',
   'claude-classic-light',
   'claude-slate-light',
+  'purple-haze-light',
   'scifi-light',
 ])
 

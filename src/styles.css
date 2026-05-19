@@ -1180,6 +1180,98 @@ code {
   --theme-input: #fbfdfb;
 }
 
+[data-theme='purple-haze'] {
+  --theme-bg: #0a0118;
+  --theme-sidebar: #0c0220;
+  --theme-panel: #100327;
+  --theme-card: #15042d;
+  --theme-card2: #1a0635;
+  --theme-border: rgba(113, 61, 255, 0.32);
+  --theme-border-subtle: rgba(113, 61, 255, 0.16);
+  --theme-text: #f3eefc;
+  --theme-muted: rgba(230, 221, 246, 0.68);
+  --theme-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.58);
+  --theme-shadow-2: 0 12px 30px rgba(0, 0, 0, 0.54);
+  --theme-shadow-3: 0 24px 56px rgba(0, 0, 0, 0.66);
+  --theme-glass: rgba(16, 3, 39, 0.72);
+  --theme-focus: #713dff;
+  --theme-accent: #713dff;
+  --theme-accent-secondary: #9b7bff;
+  --theme-accent-subtle: rgba(113, 61, 255, 0.12);
+  --theme-accent-border: rgba(113, 61, 255, 0.42);
+  --theme-active: #8b5cff;
+  --theme-link: #b7a7ff;
+  --theme-success: #7ef0c5;
+  --theme-warning: #f7c66c;
+  --theme-danger: #ff7a8d;
+  --theme-stripe: rgba(113, 61, 255, 0.05);
+  --theme-header-bg: rgba(16, 3, 39, 0.88);
+  --theme-header-border: rgba(113, 61, 255, 0.22);
+  --chat-user-bg: #19083a;
+  --chat-user-border: rgba(113, 61, 255, 0.26);
+  --chat-user-foreground: #f8f5ff;
+  --chat-assistant-bg: #100327;
+  --chat-assistant-border: rgba(113, 61, 255, 0.16);
+  --chat-assistant-foreground: #f3eefc;
+  --composer-bg: rgba(16, 3, 39, 0.92);
+  --composer-border: rgba(113, 61, 255, 0.24);
+  --composer-placeholder: rgba(230, 221, 246, 0.44);
+  --tool-card-bg: #100327;
+  --tool-card-border: rgba(113, 61, 255, 0.2);
+  --tool-card-title: #f8f5ff;
+  --tool-card-muted: rgba(230, 221, 246, 0.66);
+  --code-bg: #070111;
+  --code-border: rgba(113, 61, 255, 0.18);
+  --code-foreground: #d7ccff;
+  --theme-input: #120428;
+}
+
+[data-theme='purple-haze-light'] {
+  --theme-bg: #f7f2ff;
+  --theme-sidebar: #efe6ff;
+  --theme-panel: #f4ecff;
+  --theme-card: #ffffff;
+  --theme-card2: #f8f3ff;
+  --theme-border: rgba(113, 61, 255, 0.18);
+  --theme-border-subtle: rgba(113, 61, 255, 0.1);
+  --theme-text: #1a1130;
+  --theme-muted: rgba(26, 17, 48, 0.62);
+  --theme-shadow-1: 0 1px 2px rgba(27, 10, 62, 0.08);
+  --theme-shadow-2: 0 12px 30px rgba(27, 10, 62, 0.1);
+  --theme-shadow-3: 0 24px 56px rgba(27, 10, 62, 0.12);
+  --theme-glass: rgba(247, 242, 255, 0.78);
+  --theme-focus: #713dff;
+  --theme-accent: #713dff;
+  --theme-accent-secondary: #8f6fff;
+  --theme-accent-subtle: rgba(113, 61, 255, 0.08);
+  --theme-accent-border: rgba(113, 61, 255, 0.24);
+  --theme-active: #6a3ef6;
+  --theme-link: #5e39e4;
+  --theme-success: #167a59;
+  --theme-warning: #a05a00;
+  --theme-danger: #be2f57;
+  --theme-stripe: rgba(113, 61, 255, 0.04);
+  --theme-header-bg: rgba(255, 255, 255, 0.82);
+  --theme-header-border: rgba(113, 61, 255, 0.14);
+  --chat-user-bg: #efe3ff;
+  --chat-user-border: rgba(113, 61, 255, 0.18);
+  --chat-user-foreground: #1a1130;
+  --chat-assistant-bg: #ffffff;
+  --chat-assistant-border: rgba(113, 61, 255, 0.12);
+  --chat-assistant-foreground: #1a1130;
+  --composer-bg: rgba(255, 255, 255, 0.88);
+  --composer-border: rgba(113, 61, 255, 0.16);
+  --composer-placeholder: rgba(26, 17, 48, 0.38);
+  --tool-card-bg: #ffffff;
+  --tool-card-border: rgba(113, 61, 255, 0.14);
+  --tool-card-title: #1a1130;
+  --tool-card-muted: rgba(26, 17, 48, 0.62);
+  --code-bg: #efe7ff;
+  --code-border: rgba(113, 61, 255, 0.12);
+  --code-foreground: #1a1130;
+  --theme-input: #ffffff;
+}
+
 [data-theme='claude-nous'] html,
 [data-theme='claude-nous'] body,
 [data-theme='claude-nous'] #root,
@@ -1204,6 +1296,10 @@ code {
 [data-theme='claude-nous-light'] body,
 [data-theme='claude-nous-light'] #root,
 [data-theme='claude-nous-light'] .light,
+[data-theme='purple-haze-light'] html,
+[data-theme='purple-haze-light'] body,
+[data-theme='purple-haze-light'] #root,
+[data-theme='purple-haze-light'] .light,
 [data-theme='claude-official-light'] html,
 [data-theme='claude-official-light'] body,
 [data-theme='claude-official-light'] #root,
@@ -1226,6 +1322,7 @@ code {
    Dark: 50=darkest surface, 950=lightest text (already set above) */
 
 [data-theme='claude-nous'],
+[data-theme='purple-haze'],
 [data-theme='claude-official'],
 [data-theme='claude-classic'],
 [data-theme='claude-slate'] {
@@ -1252,6 +1349,7 @@ code {
    Light: 50=lightest surface, 950=darkest text */
 
 [data-theme='claude-nous-light'],
+[data-theme='purple-haze-light'],
 [data-theme='claude-official-light'],
 [data-theme='claude-classic-light'],
 [data-theme='claude-slate-light'] {
@@ -1452,6 +1550,25 @@ code {
 [data-theme$='-light'] .bg-violet-500,
 [data-theme$='-light'] .bg-violet-600 {
   background-color: var(--theme-accent) !important;
+}
+
+[data-theme='purple-haze'] .theme-glass {
+  background: var(--theme-glass) !important;
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+[data-theme='purple-haze'] .theme-glass-strong {
+  background: color-mix(in srgb, var(--theme-glass) 88%, transparent) !important;
+  backdrop-filter: blur(28px) saturate(1.3);
+  -webkit-backdrop-filter: blur(28px) saturate(1.3);
+}
+
+[data-theme='purple-haze'] .theme-micro-border {
+  border-color: var(--theme-accent-border) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 0 1px color-mix(in srgb, var(--theme-accent) 18%, transparent);
 }
 [data-theme$='-light'] .border-indigo-200,
 [data-theme$='-light'] .border-indigo-300,

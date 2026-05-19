@@ -145,6 +145,14 @@ type ProfilesListResponse = {
   activeProfile?: string
 }
 
+type ActivateProfileResponse = {
+  ok?: boolean
+  error?: string
+  sync?: {
+    warnings?: string[]
+  }
+}
+
 type WorkspaceEntry = {
   name: string
   path: string
@@ -743,15 +751,19 @@ async function fetchProfiles(): Promise<ProfilesListResponse> {
   return (await response.json()) as ProfilesListResponse
 }
 
-async function activateProfile(name: string): Promise<void> {
+async function activateProfile(name: string): Promise<string[]> {
   const response = await fetch('/api/profiles/activate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
   })
+  const payload = (await response.json().catch(() => ({}))) as ActivateProfileResponse
   if (!response.ok) {
-    throw new Error(await readResponseError(response))
+    throw new Error(payload.error || `Request failed (${response.status})`)
   }
+  const warnings = payload.sync?.warnings
+  if (!Array.isArray(warnings)) return []
+  return warnings.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
 }
 
 async function fetchWorkspaceContext(): Promise<WorkspaceDetectionResponse> {
@@ -976,7 +988,7 @@ function ChatComposerComponent({
   })
   const profileActivateMutation = useMutation({
     mutationFn: activateProfile,
-    onSuccess: async (_data, profileName) => {
+    onSuccess: async (warnings, profileName) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['profiles'] }),
         queryClient.invalidateQueries({ queryKey: ['workspace'] }),
@@ -987,6 +999,9 @@ function ChatComposerComponent({
       ])
       setIsProfileMenuOpen(false)
       toast(`Activated profile ${profileName}`)
+      for (const warning of warnings) {
+        toast(warning, { type: 'warning' })
+      }
     },
     onError: (error) => {
       toast(
@@ -2009,34 +2024,35 @@ function ChatComposerComponent({
             ? [
                 // Embedded mobile composer: stay inside the card, no fixed bottom.
                 'relative z-40 w-full',
-                'bg-surface border-t border-primary-200/60',
+                'bg-(--theme-panel)/90 border-t border-white/5 backdrop-blur-md',
+                'shadow-[0_0_0_1px_rgba(255,255,255,0.03)]',
               ].join(' ')
             : [
-                'fixed z-[70] transition-all duration-200',
+                'fixed z-70 transition-all duration-200',
                 chatNavMode === 'dock'
                   ? [
                       // iMessage-style: edge-to-edge, docked to bottom
                       'left-0 right-0',
-                      'bg-surface/95 backdrop-blur-xl',
-                      'border-t border-primary-200/60',
+                      'bg-(--theme-panel)/90 backdrop-blur-md',
+                      'border-t border-white/5',
                     ].join(' ')
                   : [
                       // scroll-hide / integrated: floating pill above tab bar
                       'left-4 right-4',
-                      'bg-surface/95 backdrop-blur-2xl',
-                      'shadow-[0_8px_32px_rgba(0,0,0,0.15)]',
-                      'rounded-[22px]',
+                      'bg-(--theme-glass)/95 backdrop-blur-md',
+                      'shadow-[0_10px_40px_rgba(0,0,0,0.35)]',
+                      'rounded-[22px] border border-white/5',
                     ].join(' '),
               ].join(' ')
           : [
               'relative z-40 shrink-0 w-full mx-auto px-3 pt-2 sm:px-5',
-              'bg-surface',
+              'bg-transparent',
             ].join(' '),
         // Mobile: pin above tab bar + safe-area inset. Desktop: normal bottom padding.
         !isMobileViewport
           ? 'pb-[max(var(--safe-b),8px)] md:pb-[calc(var(--safe-b)+0.75rem)]'
           : '',
-        'md:bg-surface/95 md:backdrop-blur md:transition-[padding-bottom,background-color,backdrop-filter] md:duration-200',
+        'md:bg-transparent md:transition-[padding-bottom,background-color,backdrop-filter] md:duration-200',
       )}
       style={composerWrapperStyle}
       ref={setWrapperRefs}
@@ -2057,14 +2073,15 @@ function ChatComposerComponent({
         disabled={disabled}
         maxHeight={isMobileViewport ? 120 : 240}
         className={cn(
-          'relative z-50 transition-all duration-300',
+          'relative z-50 transition-all duration-300 bg-(--theme-panel)/92 border border-white/5 shadow-[0_12px_40px_rgba(0,0,0,0.32)]',
+          'focus-within:border-(--theme-accent-border) focus-within:ring-2 focus-within:ring-(--theme-accent)/30 focus-within:shadow-[0_0_0_1px_rgba(113,61,255,0.2),0_0_24px_rgba(113,61,255,0.12)]',
           // On mobile: remove PromptInput's built-in rounded/bg/padding — outer wrapper owns the container
           isMobileViewport &&
-            'py-0 gap-0 !rounded-none !bg-transparent shadow-none outline-none',
+            'py-0 gap-0 rounded-none! bg-transparent! shadow-none outline-none',
           isDraggingOver &&
-            'outline-primary-500 ring-2 ring-primary-300 bg-primary-50/80',
+            'outline-(--theme-accent) ring-2 ring-(--theme-accent)/30 bg-white/3',
           isLoading &&
-            'ring-2 ring-accent-400/70 shadow-[0_0_20px_rgba(48,80,255,0.35)] animate-pulse-glow',
+            'ring-2 ring-(--theme-accent)/70 shadow-[0_0_20px_rgba(113,61,255,0.35)] animate-pulse-glow',
         )}
         onPaste={handlePaste}
         onDragEnter={handleDragEnter}
@@ -2193,7 +2210,7 @@ function ChatComposerComponent({
                     setMobileKeyboardInset(0)
                   }
                 }}
-                className="min-h-[36px] max-h-[120px] flex-1 text-base leading-snug"
+                className="min-h-9 max-h-30 flex-1 text-base leading-snug"
               />
 
               {/* Right side: stop / send / mic */}
@@ -2291,14 +2308,14 @@ function ChatComposerComponent({
                     <button
                       type="button"
                       aria-label="Close actions"
-                      className="fixed inset-0 z-[199] bg-black/30"
+                      className="fixed inset-0 z-199 bg-black/30"
                       onClick={() => {
                         setIsMobileActionsMenuOpen(false)
                         setIsModelMenuOpen(false)
                       }}
                     />
                     <div
-                      className="fixed bottom-0 left-0 right-0 z-[200] rounded-t-2xl bg-white shadow-2xl pb-safe dark:bg-neutral-900 animate-in slide-in-from-bottom-10 duration-200"
+                      className="fixed bottom-0 left-0 right-0 z-200 rounded-t-2xl bg-white shadow-2xl pb-safe dark:bg-neutral-900 animate-in slide-in-from-bottom-10 duration-200"
                       role="dialog"
                       aria-label="Actions"
                       onClick={(event) => event.stopPropagation()}
@@ -2412,11 +2429,11 @@ function ChatComposerComponent({
                     <button
                       type="button"
                       aria-label="Close model picker"
-                      className="fixed inset-0 z-[209] bg-black/30"
+                      className="fixed inset-0 z-209 bg-black/30"
                       onClick={() => setIsModelMenuOpen(false)}
                     />
                     <div
-                      className="fixed bottom-0 left-0 right-0 z-[210] rounded-t-2xl bg-white shadow-2xl pb-safe dark:bg-neutral-900 animate-in slide-in-from-bottom-10 duration-200"
+                      className="fixed bottom-0 left-0 right-0 z-210 rounded-t-2xl bg-white shadow-2xl pb-safe dark:bg-neutral-900 animate-in slide-in-from-bottom-10 duration-200"
                       role="dialog"
                       aria-label="Select model"
                       onClick={(event) => event.stopPropagation()}

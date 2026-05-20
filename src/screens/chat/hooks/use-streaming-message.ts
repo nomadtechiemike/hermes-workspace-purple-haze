@@ -92,6 +92,8 @@ type UseStreamingMessageOptions = {
   handoffTimeoutMs?: number
 }
 
+const SSE_RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000] as const
+
 export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
   const {
     pinMainSession = false,
@@ -828,12 +830,12 @@ export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
         eventSourceRef.current.abort()
       }
 
-      const abortController = new AbortController()
-      eventSourceRef.current = abortController
       finishedRef.current = false
       resetActiveStreamState(params.sessionKey)
       lifecyclePhaseRef.current = 'requesting'
       requestedSessionKeyRef.current = params.sessionKey
+      const requestIdempotencyKey =
+        params.idempotencyKey ?? crypto.randomUUID()
 
       // Bump the generation token so any chunks the previous stream had
       // already buffered but not yet dispatched (after our abort() call)
@@ -852,158 +854,183 @@ export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
         error: null,
       })
 
-      try {
-        const response = await fetch('/api/send-stream', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+      const waitForReconnectDelay = async (attempt: number) => {
+        const delayMs = SSE_RECONNECT_DELAYS_MS[attempt - 1] ?? 0
+        if (!delayMs) return
+        await new Promise((resolve) => window.setTimeout(resolve, delayMs))
+      }
+
+      for (let attempt = 0; attempt <= SSE_RECONNECT_DELAYS_MS.length; attempt += 1) {
+        const abortController = new AbortController()
+        eventSourceRef.current = abortController
+
+        if (attempt > 0) {
+          pushActivity({
+            type: 'assistant_start',
+            time: new Date().toLocaleTimeString(),
+            text: `Reconnecting stream (attempt ${attempt})`,
+          })
+          await waitForReconnectDelay(attempt)
+          if (streamGenerationRef.current !== myGeneration) return
+        }
+
+        try {
+          const response = await fetch('/api/send-stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionKey: params.sessionKey,
+              friendlyId: params.friendlyId,
+              message: params.message,
+              history: params.history,
+              thinking: params.thinking,
+              fastMode: params.fastMode,
+              attachments: params.attachments,
+              idempotencyKey: requestIdempotencyKey,
+              model: params.model || undefined,
+              locale:
+                typeof window !== 'undefined'
+                  ? localStorage.getItem('hermes-workspace-locale') || 'en'
+                  : 'en',
+            }),
+            signal: abortController.signal,
+          })
+
+          if (!response.ok) {
+            const errorText = await response.text()
+            throw new Error(errorText || 'Stream request failed')
+          }
+
+          const resolvedHeaders = readResolvedSessionHeaders(response.headers, {
             sessionKey: params.sessionKey,
-            friendlyId: params.friendlyId,
-            message: params.message,
-            history: params.history,
-            thinking: params.thinking,
-            fastMode: params.fastMode,
-            attachments: params.attachments,
-            idempotencyKey: params.idempotencyKey ?? crypto.randomUUID(),
-            model: params.model || undefined,
-            locale:
-              typeof window !== 'undefined'
-                ? localStorage.getItem('hermes-workspace-locale') || 'en'
-                : 'en',
-          }),
-          signal: abortController.signal,
-        })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(errorText || 'Stream request failed')
-        }
-
-        const resolvedHeaders = readResolvedSessionHeaders(response.headers, {
-          sessionKey: params.sessionKey,
-          friendlyId: params.friendlyId || params.sessionKey,
-        })
-        const resolvedSessionKey = resolvedHeaders.sessionKey
-        const resolvedFriendlyId = resolvedHeaders.friendlyId
-        if (resolvedSessionKey !== activeSessionKeyRef.current) {
-          // Only promote a backend-returned session ID when the original
-          // request was a bootstrap key ("new"/"main"). Concrete Workspace
-          // sessions must never be overridden — that causes splits (#297).
-          if (
-            shouldResolveStreamSession({
-              requestedSessionKey: params.sessionKey,
-              currentSessionKey: activeSessionKeyRef.current,
-              resolvedSessionKey,
-              pinMainSession,
-            })
-          ) {
-            activeSessionKeyRef.current = resolvedSessionKey
-            onSessionResolved?.({
-              sessionKey: resolvedSessionKey,
-              friendlyId: resolvedFriendlyId,
-            })
-          }
-        }
-
-        markAccepted()
-        schedulePostAcceptanceTimeout('accepted')
-
-        // HTTP 200 — message accepted by Hermes Agent. Clear optimistic "sending"
-        // status so the Retry timer never fires. Hermes Agent does NOT echo
-        // user messages via SSE, so this is the only confirmation we get.
-        if (params.idempotencyKey && onMessageAccepted) {
-          onMessageAccepted(
-            activeSessionKeyRef.current,
-            resolvedFriendlyId,
-            params.idempotencyKey,
-          )
-        }
-
-        const reader = response.body?.getReader()
-        if (!reader) {
-          throw new Error('No response body')
-        }
-
-        const decoder = new TextDecoder()
-        let buffer = ''
-
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime safety
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          // Guard against stale streams writing into a newer session.
-          // If startStreaming was called again with a different sessionKey,
-          // streamGenerationRef has been bumped; this loop's reads are now
-          // for an aborted/superseded stream and must not dispatch events.
-          // See #297.
-          if (streamGenerationRef.current !== myGeneration) {
-            try {
-              await reader.cancel()
-            } catch {
-              // Reader may already be closed; safe to ignore.
+            friendlyId: params.friendlyId || params.sessionKey,
+          })
+          const resolvedSessionKey = resolvedHeaders.sessionKey
+          const resolvedFriendlyId = resolvedHeaders.friendlyId
+          if (resolvedSessionKey !== activeSessionKeyRef.current) {
+            if (
+              shouldResolveStreamSession({
+                requestedSessionKey: params.sessionKey,
+                currentSessionKey: activeSessionKeyRef.current,
+                resolvedSessionKey,
+                pinMainSession,
+              })
+            ) {
+              activeSessionKeyRef.current = resolvedSessionKey
+              onSessionResolved?.({
+                sessionKey: resolvedSessionKey,
+                friendlyId: resolvedFriendlyId,
+              })
             }
-            break
           }
 
-          buffer += decoder.decode(value, { stream: true })
-          const events = buffer.split('\n\n')
-          buffer = events.pop() ?? ''
+          markAccepted()
+          schedulePostAcceptanceTimeout('accepted')
 
-          for (const eventBlock of events) {
-            if (!eventBlock.trim()) continue
+          if (onMessageAccepted) {
+            onMessageAccepted(
+              activeSessionKeyRef.current,
+              resolvedFriendlyId,
+              requestIdempotencyKey,
+            )
+          }
 
-            // Re-check between events as well — a single read() can yield a
-            // batch of buffered events; if a new stream started mid-batch,
-            // the rest of this batch must be dropped.
-            if (streamGenerationRef.current !== myGeneration) break
+          const reader = response.body?.getReader()
+          if (!reader) {
+            throw new Error('No response body')
+          }
 
-            const lines = eventBlock.split('\n')
-            let currentEvent = ''
-            let currentData = ''
+          const decoder = new TextDecoder()
+          let buffer = ''
 
-            for (const line of lines) {
-              if (line.startsWith('event: ')) {
-                currentEvent = line.slice(7).trim()
-              } else if (line.startsWith('data: ')) {
-                currentData += line.slice(6)
-              } else if (line.startsWith('data:')) {
-                currentData += line.slice(5)
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            if (streamGenerationRef.current !== myGeneration) {
+              try {
+                await reader.cancel()
+              } catch {
+                // Reader may already be closed; safe to ignore.
+              }
+              break
+            }
+
+            buffer += decoder.decode(value, { stream: true })
+            const events = buffer.split('\n\n')
+            buffer = events.pop() ?? ''
+
+            for (const eventBlock of events) {
+              if (!eventBlock.trim()) continue
+              if (streamGenerationRef.current !== myGeneration) break
+
+              const lines = eventBlock.split('\n')
+              let currentEvent = ''
+              let currentData = ''
+
+              for (const line of lines) {
+                if (line.startsWith('event: ')) {
+                  currentEvent = line.slice(7).trim()
+                } else if (line.startsWith('data: ')) {
+                  currentData += line.slice(6)
+                } else if (line.startsWith('data:')) {
+                  currentData += line.slice(5)
+                }
+              }
+
+              if (!currentEvent || !currentData) continue
+              try {
+                processEvent(currentEvent, JSON.parse(currentData))
+              } catch {
+                // Ignore invalid SSE data.
               }
             }
-
-            if (!currentEvent || !currentData) continue
-            try {
-              processEvent(currentEvent, JSON.parse(currentData))
-            } catch {
-              // Ignore invalid SSE data.
-            }
           }
-        }
 
-        const lifecyclePhase = lifecyclePhaseRef.current as StreamLifecyclePhase
-        if (!finishedRef.current && lifecyclePhase !== 'handoff') {
-          finishStream()
-        }
-      } catch (err) {
-        if ((err as Error).name === 'AbortError') {
-          eventSourceRef.current = null
-          clearHandoffTimer()
-          clearSendStreamRun()
-          setState((prev) => ({
-            ...prev,
-            isStreaming: false,
-          }))
-          const abortedPhase = lifecyclePhaseRef.current as StreamLifecyclePhase
-          if (abortedPhase === 'handoff') {
-            schedulePostAcceptanceTimeout('handoff')
+          const lifecyclePhase = lifecyclePhaseRef.current as StreamLifecyclePhase
+          if (!finishedRef.current && lifecyclePhase !== 'handoff') {
+            const canRetryEndedStream =
+              (lifecyclePhase === 'accepted' || lifecyclePhase === 'active') &&
+              attempt < SSE_RECONNECT_DELAYS_MS.length
+            if (canRetryEndedStream) {
+              continue
+            }
+            finishStream()
+          }
+          return
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') {
+            eventSourceRef.current = null
+            clearHandoffTimer()
+            clearSendStreamRun()
+            setState((prev) => ({
+              ...prev,
+              isStreaming: false,
+            }))
+            const abortedPhase = lifecyclePhaseRef.current as StreamLifecyclePhase
+            if (abortedPhase === 'handoff') {
+              schedulePostAcceptanceTimeout('handoff')
+              return
+            }
+            onAbort?.()
             return
           }
-          onAbort?.()
+
+          const lifecyclePhase = lifecyclePhaseRef.current as StreamLifecyclePhase
+          const canRetry =
+            (lifecyclePhase === 'requesting' ||
+              lifecyclePhase === 'accepted' ||
+              lifecyclePhase === 'active') &&
+            attempt < SSE_RECONNECT_DELAYS_MS.length
+
+          if (canRetry) {
+            continue
+          }
+
+          const errorMessage = err instanceof Error ? err.message : String(err)
+          markFailed(errorMessage)
           return
         }
-        const errorMessage = err instanceof Error ? err.message : String(err)
-        markFailed(errorMessage)
       }
     },
     [

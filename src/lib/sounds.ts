@@ -15,9 +15,6 @@ const NOTES = {
 } as const
 
 export type SoundEvent =
-  | 'agentSpawned'
-  | 'agentComplete'
-  | 'agentFailed'
   | 'chatNotification'
   | 'chatComplete'
   | 'alert'
@@ -152,58 +149,6 @@ function playSequence(
 // === Sound Functions ===
 
 /**
- * Quick ascending two-tone chime (C5→E5, 100ms each, sine wave)
- * Used when a new agent is spawned
- */
-export function playAgentSpawned(): void {
-  playSequence([
-    { freq: NOTES.C5, durationMs: 100, type: 'sine' },
-    { freq: NOTES.E5, durationMs: 100, type: 'sine' },
-  ])
-}
-
-/**
- * Satisfying success ding (G5, 150ms with soft decay, triangle wave)
- * Used when an agent completes successfully
- */
-export function playAgentComplete(): void {
-  const ctx = getAudioContext()
-  if (!ctx || !prefs.enabled) return
-
-  const now = ctx.currentTime
-  const duration = 0.15
-  const volume = prefs.volume
-
-  const osc = ctx.createOscillator()
-  osc.type = 'triangle'
-  osc.frequency.setValueAtTime(NOTES.G5, now)
-
-  const gain = ctx.createGain()
-  gain.gain.setValueAtTime(0, now)
-  // Quick attack
-  gain.gain.linearRampToValueAtTime(volume, now + 0.003)
-  // Long soft decay for satisfying ring
-  gain.gain.exponentialRampToValueAtTime(0.001, now + duration + 0.2)
-
-  osc.connect(gain)
-  gain.connect(ctx.destination)
-
-  osc.start(now)
-  osc.stop(now + duration + 0.25)
-}
-
-/**
- * Low error tone (C3→A2, 200ms, sawtooth wave, quieter)
- * Used when an agent fails
- */
-export function playAgentFailed(): void {
-  playSequence([
-    { freq: NOTES.C3, durationMs: 200, type: 'sawtooth', volume: 0.6 },
-    { freq: NOTES.A2, durationMs: 200, type: 'sawtooth', volume: 0.6 },
-  ])
-}
-
-/**
  * Soft ping (E5, 80ms, sine wave, very subtle)
  * Used for chat notifications
  */
@@ -279,15 +224,6 @@ export function isSoundEnabled(): boolean {
  */
 export function playSound(event: SoundEvent): void {
   switch (event) {
-    case 'agentSpawned':
-      playAgentSpawned()
-      break
-    case 'agentComplete':
-      playAgentComplete()
-      break
-    case 'agentFailed':
-      playAgentFailed()
-      break
     case 'chatNotification':
       playChatNotification()
       break

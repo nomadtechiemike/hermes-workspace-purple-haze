@@ -21,7 +21,6 @@ export type WidgetId =
   | 'logs_tail'
   | 'operator_tip'
   | 'skills_usage'
-  | 'achievements'
   | 'mix_rhythm'
 
 export type WidgetMeta = {
@@ -108,13 +107,6 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetMeta> = [
     id: 'skills_usage',
     label: 'Skills usage',
     description: 'Top-5 used skills as a bar chart.',
-    column: 'rail',
-    hideable: true,
-  },
-  {
-    id: 'achievements',
-    label: 'Achievements',
-    description: 'Recent unlocks & progress.',
     column: 'rail',
     hideable: true,
   },

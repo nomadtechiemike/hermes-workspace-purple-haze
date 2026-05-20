@@ -21,7 +21,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { AchievementsCard } from './components/achievements-card'
 import { ActiveModelKpi } from './components/active-model-kpi'
 import { AnalyticsChartCard } from './components/analytics-chart-card'
 import { AttentionMarquee } from './components/attention-marquee'
@@ -808,11 +807,7 @@ export function DashboardScreen() {
   const overviewQuery = useQuery<DashboardOverview>({
     queryKey: ['dashboard', 'overview', period],
     queryFn: async () => {
-      // achievements=5 (instead of 3) gives the Achievements rail
-      // card enough vertical mass to fill the gap below Top Models.
-      const res = await fetch(
-        `/api/dashboard/overview?days=${period}&achievements=5`,
-      )
+      const res = await fetch(`/api/dashboard/overview?days=${period}`)
       if (!res.ok) throw new Error(`overview ${res.status}`)
       return (await res.json()) as DashboardOverview
     },
@@ -1118,13 +1113,7 @@ export function DashboardScreen() {
         ) : null}
       </div>
 
-      {/* ── Primary content: Sessions Intelligence (replaces 14d Activity) + side rail ──
-           Iteration 006 layout per Eric:
-           - Attention now rides the OpsStrip marquee, not the rail.
-           - Achievements moved up to sit beside Top Models would push the chart out
-             of place; instead it now lives at the *top* of the side rail since the
-             rail itself is right of the chart, which produces the same visual order.
-           - Logs default off; still toggleable from edit mode for power users. */}
+      {/* ── Primary content: Sessions Intelligence + side rail ── */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
         {/* Iter 013 main column order: Operator Tip first (compact),
             then Sessions Intelligence (the bottom anchor that grows
@@ -1162,19 +1151,8 @@ export function DashboardScreen() {
             </WidgetShell>
           ) : null}
         </div>
-        {/* Side rail. Achievements is now first (sits beside Top Models
-            visually since the rail is right of the chart row + sessions),
-            then Skills, then the rhythm card. Mix & rhythm is the unique
-            chart in this column — keeping it.
-            `min-h-full` + the trailing `flex-1` rhythm card together
-            stretch the rail to match Sessions Intelligence height so
-            we don't get the dangling gap Eric flagged in iter 007. */}
+        {/* Side rail with skills usage and mix/rhythm widgets. */}
         <div className="flex min-h-full flex-col gap-3 lg:col-span-4">
-          <WidgetShell id="achievements" layout={layout}>
-            <AchievementsCard
-              achievements={overview?.achievements ?? null}
-            />
-          </WidgetShell>
           <WidgetShell id="skills_usage" layout={layout}>
             <SkillsUsageCard
               usage={overview?.skillsUsage ?? null}

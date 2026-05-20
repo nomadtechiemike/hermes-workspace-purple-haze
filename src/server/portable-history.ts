@@ -5,10 +5,19 @@ export type PortableHistoryMessage = {
   content: string
 }
 
+function isForceReplayEnabled(): boolean {
+  const raw = process.env.HERMES_WORKSPACE_FORCE_HISTORY
+  if (!raw) return false
+  const normalized = raw.trim().toLowerCase()
+  return normalized === '1' || normalized === 'true' || normalized === 'yes'
+}
+
 export function shouldReplayPortableHistory(options?: {
   localBaseUrl?: string
   bearerToken?: string
 }): boolean {
+  if (isForceReplayEnabled()) return true
+
   const localBaseUrl = options?.localBaseUrl?.trim() || ''
   if (localBaseUrl) return true
 

@@ -42,7 +42,6 @@ export type GatewaySession = {
   updatedAt?: number | string
   lastMessage?: GatewaySessionMessage | null
   usage?: GatewaySessionUsage
-  [key: string]: unknown
 }
 
 export type GatewaySessionsResponse = {
@@ -57,7 +56,6 @@ export type GatewaySessionStatusResponse = {
   totalTokens?: number
   usage?: GatewaySessionUsage
   error?: string
-  [key: string]: unknown
 }
 
 export type GatewayModelCatalogEntry =
@@ -70,7 +68,6 @@ export type GatewayModelCatalogEntry =
       label?: string
       displayName?: string
       id?: string
-      [key: string]: unknown
     }
 
 export type GatewayModelsResponse = {
@@ -86,9 +83,7 @@ export type GatewayModelSwitchResponse = {
   resolved?: {
     modelProvider?: string
     model?: string
-    [key: string]: unknown
   }
-  [key: string]: unknown
 }
 
 export type GatewayModelDefaultResponse = {

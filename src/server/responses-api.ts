@@ -109,7 +109,7 @@ export async function* streamResponses(
     'Content-Type': 'application/json',
     Accept: 'text/event-stream',
   }
-  if (req.sessionId && BEARER_TOKEN) {
+  if (req.sessionId) {
     headers['X-Hermes-Session-Id'] = req.sessionId
   }
 

@@ -18,7 +18,8 @@
  * `send-stream.ts` can translate to its existing `tool.*` events without
  * caring about Responses-spec quirks.
  */
-import { BEARER_TOKEN, CLAUDE_API } from './gateway-capabilities'
+import { CLAUDE_API } from './gateway-capabilities'
+import { getEffectiveAuthMode } from './auth-utils'
 
 export type ResponsesStreamEvent =
   | { kind: 'text.delta'; delta: string }
@@ -52,11 +53,16 @@ export type ResponsesChatRequest = {
   instructions?: string
   model?: string
   sessionId?: string
+  bearerToken?: string
   signal?: AbortSignal
 }
 
-const _authHeaders = (): Record<string, string> =>
-  BEARER_TOKEN ? { Authorization: `Bearer ${BEARER_TOKEN}` } : {}
+function _authHeaders(
+  bearerToken?: string,
+): Record<string, string> {
+  const auth = getEffectiveAuthMode({ bearerToken })
+  return auth.token ? { Authorization: `Bearer ${auth.token}` } : {}
+}
 
 function tryParseJson(value: string): Record<string, unknown> | string | null {
   if (!value) return null
@@ -105,7 +111,7 @@ export async function* streamResponses(
   req: ResponsesChatRequest,
 ): AsyncGenerator<ResponsesStreamEvent, void, void> {
   const headers: Record<string, string> = {
-    ..._authHeaders(),
+    ..._authHeaders(req.bearerToken),
     'Content-Type': 'application/json',
     Accept: 'text/event-stream',
   }

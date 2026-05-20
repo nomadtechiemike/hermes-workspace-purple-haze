@@ -22,6 +22,7 @@ import {
   upsertRunToolCall,
 } from '../../server/run-store'
 import { getChatMode } from '../../server/gateway-capabilities'
+import { getEffectiveAuthMode } from '../../server/auth-utils'
 import { ensureLocalSession, appendLocalMessage, getLocalMessages, touchLocalSession } from '../../server/local-session-store'
 import { getLocalProviderDef, getDiscoveredModels } from '../../server/local-provider-discovery'
 import { openaiChat } from '../../server/openai-compat-api'
@@ -542,10 +543,14 @@ export const Route = createFileRoute('/api/send-stream')({
                     content: typeof body.message === 'string' ? body.message : '',
                     timestamp: Date.now(),
                   })
+                  const effectiveAuthMode = getEffectiveAuthMode()
                   const effectiveHistory = selectPortableConversationHistory(
                     persistedHistory,
                     history,
-                    { localBaseUrl },
+                    {
+                      localBaseUrl,
+                      bearerToken: effectiveAuthMode.token,
+                    },
                   )
                   const portableMessages: Array<OpenAICompatMessage> = [
                     ...localeSystemMsg,
@@ -587,6 +592,7 @@ export const Route = createFileRoute('/api/send-stream')({
                         model:
                           typeof body.model === 'string' ? body.model : undefined,
                         sessionId: portableSessionKey,
+                        bearerToken: effectiveAuthMode.token,
                         signal: abortController.signal,
                       })
                       for await (const ev of responsesStream) {

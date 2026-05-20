@@ -1,44 +1,8 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { homedir } from 'node:os'
-import { join } from 'node:path'
 import { CLAUDE_API } from './gateway-capabilities'
-
-/**
- * Optional bearer token for authenticated OpenAI-compatible endpoints
- * (e.g. Codex OAuth, Hermes Agent gateway with API_SERVER_KEY set).
- *
- * Read at call time, not module-load time: under vite-node SSR the
- * top-level `process.env` snapshot can be empty when this module is
- * first evaluated, freezing a `const` to '' even though the env is
- * populated by the time requests actually run. Reading inside the
- * function avoids that.
- *
- * Resolution order:
- * 1. `HERMES_API_TOKEN` env var
- * 2. `CLAUDE_API_TOKEN` env var (back-compat)
- * 3. Codex OAuth access token from `~/.codex/auth.json`
- */
-function getBearerToken(): string {
-  const fromEnv = process.env.HERMES_API_TOKEN || process.env.CLAUDE_API_TOKEN
-  if (fromEnv) return fromEnv
-
-  // Fall back to Codex OAuth token when no env var is set.
-  // This bridges the gap for users who authenticated via `codex login`
-  // but don't have HERMES_API_TOKEN configured.
-  try {
-    const codexAuthPath = join(homedir(), '.codex', 'auth.json')
-    if (existsSync(codexAuthPath)) {
-      const auth = JSON.parse(readFileSync(codexAuthPath, 'utf-8')) as {
-        tokens?: { access_token?: string }
-      }
-      if (auth.tokens?.access_token) return auth.tokens.access_token
-    }
-  } catch {
-    // Silently ignore — no Codex auth available
-  }
-
-  return ''
-}
+import {
+  getEffectiveAuthMode,
+  shouldForwardGatewayAuthorization,
+} from './auth-utils'
 
 /** Cached first available model from /v1/models — used as fallback when no model is specified. */
 let _cachedDefaultModel: string | null = null
@@ -51,7 +15,7 @@ async function getDefaultModel(): Promise<string> {
   }
   try {
     const headers: Record<string, string> = {}
-    const bearer = getBearerToken()
+    const bearer = getEffectiveAuthMode().token
     if (bearer) headers['Authorization'] = `Bearer ${bearer}`
     const res = await fetch(`${CLAUDE_API}/v1/models`, {
       headers,
@@ -279,13 +243,22 @@ export async function openaiChat(
   options: OpenAIChatOptions = {},
 ): Promise<string | AsyncGenerator<StreamChunkType, void, void>> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const bearer = getBearerToken()
+  const bearer = getEffectiveAuthMode().token
   if (bearer) {
     headers['Authorization'] = `Bearer ${bearer}`
   }
   if (options.sessionId) {
     headers['X-Hermes-Session-Id'] = options.sessionId
     headers['X-Claude-Session-Id'] = options.sessionId
+  }
+
+  if (
+    !shouldForwardGatewayAuthorization({
+      baseUrl: options.baseUrl,
+      gatewayUrl: process.env.HERMES_GATEWAY_URL || CLAUDE_API,
+    })
+  ) {
+    delete headers['Authorization']
   }
 
   const endpoint = options.baseUrl

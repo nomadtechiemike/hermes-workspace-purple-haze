@@ -1,4 +1,4 @@
-import { BEARER_TOKEN } from './gateway-capabilities'
+import { getEffectiveAuthMode } from './auth-utils'
 
 export type PortableHistoryMessage = {
   role: string
@@ -21,10 +21,8 @@ export function shouldReplayPortableHistory(options?: {
   const localBaseUrl = options?.localBaseUrl?.trim() || ''
   if (localBaseUrl) return true
 
-  const bearerToken =
-    typeof options?.bearerToken === 'string' ? options.bearerToken : BEARER_TOKEN
-
-  return !bearerToken.trim()
+  const auth = getEffectiveAuthMode({ bearerToken: options?.bearerToken })
+  return auth.mode === 'stateless'
 }
 
 export function selectPortableConversationHistory(
